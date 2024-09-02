@@ -1,4 +1,4 @@
-package com.blog.security.user;
+package com.blog.security.infra.user;
 
 public enum Role {
     USER,

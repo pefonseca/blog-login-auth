@@ -1,4 +1,4 @@
-package com.blog.security.config;
+package com.blog.security.infra.config;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -23,7 +23,10 @@ public class SecurityConfiguration {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
             .csrf(AbstractHttpConfigurer::disable)
-            .authorizeHttpRequests(auth -> auth.requestMatchers("/api/v1/auth/register", "/api/v1/auth/authenticate").permitAll().anyRequest().authenticated())
+            .authorizeHttpRequests(auth -> auth
+                    .requestMatchers("/api/v1/auth/register", "/api/v1/auth/authenticate").permitAll()
+                    .requestMatchers("/api/v1/auth/profile").authenticated()
+                    .anyRequest().authenticated())
             .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authenticationProvider(authenticationProvider)
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);

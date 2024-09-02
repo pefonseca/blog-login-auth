@@ -15,5 +15,10 @@ public class RegisterRequest {
     private String lastname;
     private String email;
     private String password;
+    private String profilePicture;
+    private String coverPicture;
+    private String bio;
+    private String city;
+    private String maritalStatus;
 
 }

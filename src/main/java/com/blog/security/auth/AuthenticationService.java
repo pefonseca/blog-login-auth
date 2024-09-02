@@ -1,10 +1,12 @@
 package com.blog.security.auth;
 
-import com.blog.security.config.JwtService;
-import com.blog.security.user.Role;
-import com.blog.security.user.User;
-import com.blog.security.user.UserRepository;
+import com.blog.security.infra.config.JwtService;
+import com.blog.security.infra.request.UserRequest;
+import com.blog.security.infra.feign.response.UserResponse;
+import com.blog.security.infra.service.UserFeignService;
+import com.blog.security.infra.user.Role;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -14,43 +16,52 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class AuthenticationService {
 
-    private final UserRepository repository;
+    @Qualifier("userFeignService")
+    private final UserFeignService service;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
 
     public AuthenticationResponse register(RegisterRequest request) {
-        var user = User.builder()
-                       .firstname(request.getFirstname())
-                       .lastname(request.getLastname())
-                       .email(request.getEmail())
-                       .password(passwordEncoder.encode(request.getPassword()))
-                       .role(Role.USER)
-                       .build();
 
-        repository.save(user);
+        UserRequest user = UserRequest.builder()
+                                      .firstName(request.getFirstname())
+                                      .lastName(request.getLastname())
+                                      .email(request.getEmail())
+                                      .password(passwordEncoder.encode(request.getPassword()))
+                                      .profilePicture(request.getProfilePicture())
+                                      .coverPicture(request.getCoverPicture())
+                                      .bio(request.getBio())
+                                      .city(request.getCity())
+                                      .maritalStatus(request.getMaritalStatus())
+                                      .role(Role.USER)
+                                      .build();
 
-        var jwtToken = jwtService.generateToken(user);
+        UserResponse userDB = service.create(user);
+
+        String jwtToken = jwtService.generateToken(userDB);
 
         return AuthenticationResponse.builder()
                                      .token(jwtToken)
                                      .build();
     }
 
+    public UserResponse findUserByEmail(String email) {
+        return service.findByEmail(email);
+    }
+
     public AuthenticationResponse authenticate(AuthenticationRequest request) {
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        request.getEmail(),
-                        request.getPassword()
-                )
-        );
+        try {
+            authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword()));
 
-        var user = repository.findByEmail(request.getEmail()).orElseThrow();
+            UserResponse user = service.findByEmail(request.getEmail());
+            String jwtToken = jwtService.generateToken(user);
 
-        var jwtToken = jwtService.generateToken(user);
-
-        return AuthenticationResponse.builder()
-                                     .token(jwtToken)
-                                     .build();
+            return AuthenticationResponse.builder()
+                    .token(jwtToken)
+                    .build();
+        } catch (Exception e) {
+            throw new RuntimeException("Authentication failed");
+        }
     }
 }

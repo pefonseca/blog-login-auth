@@ -1,4 +1,4 @@
-package com.blog.security.config;
+package com.blog.security.infra.config;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
